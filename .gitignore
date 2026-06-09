@@ -1,0 +1,41 @@
+# Build artifacts
+testing/
+
+# Symlinks to er-301-custom-units (external dependency)
+common
+er-301
+scripts
+
+# Object files
+*.o
+*.obj
+
+# Libraries
+*.so
+*.dylib
+*.a
+
+# Package files
+*.pkg
+
+# SWIG generated
+*_swig.cpp
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+*.sublime-*
+
+# Temporary files
+*.tmp
+*.temp
+*.log
