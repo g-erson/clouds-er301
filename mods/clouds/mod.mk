@@ -1,24 +1,31 @@
 PKGVERSION = 0.1.0
 
-# Path to MI eurorack code
-MI_PATH = $(HOME)/projects/mi-eurorack
+# Path to MI eurorack code - use environment variable if set, otherwise default
+MI_PATH ?= $(HOME)/projects/mi-eurorack
 
 include scripts/mod-builder.mk
-
-# Define TEST to avoid STM32 dependencies (must be after include since mod-builder.mk resets SYMBOLS)
-CFLAGS += -DTEST
 
 # Add MI includes AFTER including mod-builder.mk since it overwrites INCLUDES
 CFLAGS += -I$(MI_PATH) -I$(MI_PATH)/stmlib
 
-# Override compiler for Apple Silicon M1+ compatibility (gcc-11 doesn't support apple-m1 arch)
+# Architecture-specific settings
 ifeq ($(ARCH),darwin)
+  # Define TEST to avoid STM32 dependencies on macOS (no ARM assembly)
+  CFLAGS += -DTEST
+  # Override compiler for Apple Silicon M1+ compatibility (gcc-11 doesn't support apple-m1 arch)
   CC := gcc-14 -fdiagnostics-color -fmax-errors=5
   CPP := g++-14 -fdiagnostics-color -fmax-errors=5
   AR := gcc-ar-14
   # gcc-14 uses -shared, not Apple's -dynamic flags
   LFLAGS = -shared -undefined dynamic_lookup
 endif
+
+ifeq ($(ARCH),linux)
+  # Define TEST to avoid STM32 dependencies on Linux x86
+  CFLAGS += -DTEST
+endif
+
+# For am335x (real ER-301), we do NOT define TEST - use native ARM code
 
 # MI source files - we put objects in $(OUT_DIR)/mi/
 MI_OBJ_DIR = $(OUT_DIR)/mi

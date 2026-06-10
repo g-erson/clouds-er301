@@ -1,0 +1,103 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-am335x:
+    name: Build for ER-301 (AM335x)
+    runs-on: ubuntu-latest
+    container: tomjfiset/er-301-am335x-build-env:1.1.2
+
+    steps:
+    - name: Checkout clouds-er301
+      uses: actions/checkout@v4
+      with:
+        path: clouds-er301
+
+    - name: Checkout er-301-custom-units
+      uses: actions/checkout@v4
+      with:
+        repository: odevices/er-301
+        ref: main
+        path: er-301
+        submodules: recursive
+
+    - name: Checkout mi-eurorack
+      uses: actions/checkout@v4
+      with:
+        repository: pichenettes/eurorack
+        path: mi-eurorack
+
+    - name: Setup symlinks
+      run: |
+        cd clouds-er301/mods/clouds
+        ln -sf ../../../er-301/scripts scripts
+        ln -sf ../../../er-301/arch/am335x/hal hal
+        ln -sf ../../../er-301 er-301
+        ln -sf ../../../mi-eurorack mi
+
+    - name: Build Clouds package
+      run: |
+        cd clouds-er301/mods/clouds
+        make clouds ARCH=am335x PROFILE=release -j$(nproc)
+
+    - name: Upload package artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: clouds-am335x-pkg
+        path: clouds-er301/mods/clouds/release/am335x/*.pkg
+        if-no-files-found: error
+        retention-days: 30
+
+  build-darwin:
+    name: Build for Emulator (darwin)
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout clouds-er301
+      uses: actions/checkout@v4
+      with:
+        path: clouds-er301
+
+    - name: Checkout er-301-custom-units
+      uses: actions/checkout@v4
+      with:
+        repository: odevices/er-301
+        ref: main
+        path: er-301
+        submodules: recursive
+
+    - name: Checkout mi-eurorack
+      uses: actions/checkout@v4
+      with:
+        repository: pichenettes/eurorack
+        path: mi-eurorack
+
+    - name: Install dependencies
+      run: |
+        brew install gcc@14 sdl2 sdl2_ttf fftw
+
+    - name: Setup symlinks
+      run: |
+        cd clouds-er301/mods/clouds
+        ln -sf ../../../er-301/scripts scripts
+        ln -sf ../../../er-301 er-301
+        ln -sf ../../../mi-eurorack mi
+
+    - name: Build Clouds library
+      run: |
+        cd clouds-er301/mods/clouds
+        make clouds ARCH=darwin PROFILE=release -j$(sysctl -n hw.ncpu)
+
+    - name: Upload darwin artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: clouds-darwin
+        path: clouds-er301/mods/clouds/release/darwin/*.so
+        if-no-files-found: error
+        retention-days: 30
