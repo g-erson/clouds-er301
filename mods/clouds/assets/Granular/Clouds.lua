@@ -5,8 +5,6 @@ local Unit = require "Unit"
 local Encoder = require "Encoder"
 local GainBias = require "Unit.ViewControl.GainBias"
 local Gate = require "Unit.ViewControl.Gate"
-local Fader = require "Unit.ViewControl.Fader"
-local OptionControl = require "Unit.ViewControl.OptionControl"
 
 local Clouds = Class {}
 Clouds:include(Unit)
@@ -18,195 +16,232 @@ function Clouds:init(args)
 end
 
 function Clouds:onLoadGraph(channelCount)
+  -- Main DSP object
   local op = self:addObject("op", clouds.Clouds())
 
   -- Gate/Trigger controls
-  local trigger = self:addComparatorControl("trigger", app.COMPARATOR_TRIGGER_ON_RISE)
-  local freeze = self:addComparatorControl("freeze", app.COMPARATOR_GATE)
+  local trigger = self:addObject("trigger", app.Comparator())
+  trigger:setTriggerMode()
+  local freeze = self:addObject("freeze", app.Comparator())
+  freeze:setGateMode()
 
-  -- Parameter controls
-  local position = self:addGainBiasControl("position")
-  local size = self:addGainBiasControl("size")
-  local pitch = self:addGainBiasControl("pitch")
-  local density = self:addGainBiasControl("density")
-  local texture = self:addGainBiasControl("texture")
-  local drywet = self:addGainBiasControl("drywet")
-  local stereo = self:addGainBiasControl("stereo")
-  local feedback = self:addGainBiasControl("feedback")
-  local reverb = self:addGainBiasControl("reverb")
+  -- Parameter controls with GainBias and MinMax for range display
+  local position = self:addObject("position", app.GainBias())
+  local positionRange = self:addObject("positionRange", app.MinMax())
+  local size = self:addObject("size", app.GainBias())
+  local sizeRange = self:addObject("sizeRange", app.MinMax())
+  local pitch = self:addObject("pitch", app.GainBias())
+  local pitchRange = self:addObject("pitchRange", app.MinMax())
+  local density = self:addObject("density", app.GainBias())
+  local densityRange = self:addObject("densityRange", app.MinMax())
+  local texture = self:addObject("texture", app.GainBias())
+  local textureRange = self:addObject("textureRange", app.MinMax())
+  local drywet = self:addObject("drywet", app.GainBias())
+  local drywetRange = self:addObject("drywetRange", app.MinMax())
+  local inGain = self:addObject("inGain", app.GainBias())
+  local inGainRange = self:addObject("inGainRange", app.MinMax())
+  local stereo = self:addObject("stereo", app.GainBias())
+  local stereoRange = self:addObject("stereoRange", app.MinMax())
+  local feedback = self:addObject("feedback", app.GainBias())
+  local feedbackRange = self:addObject("feedbackRange", app.MinMax())
+  local reverb = self:addObject("reverb", app.GainBias())
+  local reverbRange = self:addObject("reverbRange", app.MinMax())
 
   -- Wire trigger/freeze
   connect(trigger, "Out", op, "Trigger")
   connect(freeze, "Out", op, "Freeze")
 
-  -- Wire parameters
+  -- Wire parameters to MinMax for range display
+  connect(position, "Out", positionRange, "In")
+  connect(size, "Out", sizeRange, "In")
+  connect(pitch, "Out", pitchRange, "In")
+  connect(density, "Out", densityRange, "In")
+  connect(texture, "Out", textureRange, "In")
+  connect(drywet, "Out", drywetRange, "In")
+  connect(inGain, "Out", inGainRange, "In")
+  connect(stereo, "Out", stereoRange, "In")
+  connect(feedback, "Out", feedbackRange, "In")
+  connect(reverb, "Out", reverbRange, "In")
+
+  -- Wire parameters to the Clouds object using tie()
   tie(op, "Position", position, "Out")
   tie(op, "Size", size, "Out")
   tie(op, "Pitch", pitch, "Out")
   tie(op, "Density", density, "Out")
   tie(op, "Texture", texture, "Out")
   tie(op, "Dry/Wet", drywet, "Out")
+  tie(op, "In Gain", inGain, "Out")
   tie(op, "Stereo", stereo, "Out")
   tie(op, "Feedback", feedback, "Out")
   tie(op, "Reverb", reverb, "Out")
 
   -- Wire audio
   if channelCount == 1 then
-    connect(self, "In1", op, "Left In")
-    connect(self, "In1", op, "Right In")
-    connect(op, "Left Out", self, "Out1")
+    connect(self, "In1", op, "In1")
+    connect(op, "Out1", self, "Out1")
   else
-    connect(self, "In1", op, "Left In")
-    connect(self, "In2", op, "Right In")
-    connect(op, "Left Out", self, "Out1")
-    connect(op, "Right Out", self, "Out2")
+    connect(self, "In1", op, "In1")
+    connect(self, "In2", op, "In2")
+    connect(op, "Out1", self, "Out1")
+    connect(op, "Out2", self, "Out2")
   end
+
+  -- Create branches for modulation inputs
+  self:addMonoBranch("trigger", trigger, "In", trigger, "Out")
+  self:addMonoBranch("freeze", freeze, "In", freeze, "Out")
+  self:addMonoBranch("position", position, "In", position, "Out")
+  self:addMonoBranch("size", size, "In", size, "Out")
+  self:addMonoBranch("pitch", pitch, "In", pitch, "Out")
+  self:addMonoBranch("density", density, "In", density, "Out")
+  self:addMonoBranch("texture", texture, "In", texture, "Out")
+  self:addMonoBranch("drywet", drywet, "In", drywet, "Out")
+  self:addMonoBranch("inGain", inGain, "In", inGain, "Out")
+  self:addMonoBranch("stereo", stereo, "In", stereo, "Out")
+  self:addMonoBranch("feedback", feedback, "In", feedback, "Out")
+  self:addMonoBranch("reverb", reverb, "In", reverb, "Out")
 end
 
-function Clouds:onLoadViews()
+local views = {
+  expanded = {
+    "trigger", "freeze",
+    "position", "size", "pitch", "density", "texture",
+    "drywet", "inGain", "stereo", "feedback", "reverb"
+  },
+  collapsed = {}
+}
+
+function Clouds:onLoadViews(objects, branches)
+  local controls = {}
+
   -- Encoder maps
-  local unitMap = Encoder.getMap("unit")
-  local pitchMap = app.LinearDialMap(-48, 48)
-  pitchMap:setSteps(12, 1, 0.1, 0.01)
+  local zeroToOne = Encoder.getMap("[0,1]")
+  local pitchMap = Encoder.getMap("[-48,48]")
 
-  return {
-    trigger = Gate {
-      button = "trig",
-      description = "Trigger",
-      branch = self.branches.trigger,
-      comparator = self.objects.trigger
-    },
-
-    freeze = Gate {
-      button = "fz",
-      description = "Freeze",
-      branch = self.branches.freeze,
-      comparator = self.objects.freeze
-    },
-
-    position = GainBias {
-      button = "pos",
-      description = "Position",
-      branch = self.branches.position,
-      gainbias = self.objects.position,
-      range = self.objects.positionRange,
-      biasMap = unitMap,
-      biasUnits = app.unitNone,
-      initialBias = 0.5
-    },
-
-    size = GainBias {
-      button = "size",
-      description = "Grain Size",
-      branch = self.branches.size,
-      gainbias = self.objects.size,
-      range = self.objects.sizeRange,
-      biasMap = unitMap,
-      biasUnits = app.unitNone,
-      initialBias = 0.5
-    },
-
-    pitch = GainBias {
-      button = "pitch",
-      description = "Pitch",
-      branch = self.branches.pitch,
-      gainbias = self.objects.pitch,
-      range = self.objects.pitchRange,
-      biasMap = pitchMap,
-      biasUnits = app.unitSemiTones,
-      initialBias = 0
-    },
-
-    density = GainBias {
-      button = "dens",
-      description = "Density",
-      branch = self.branches.density,
-      gainbias = self.objects.density,
-      range = self.objects.densityRange,
-      biasMap = unitMap,
-      biasUnits = app.unitNone,
-      initialBias = 0.5
-    },
-
-    texture = GainBias {
-      button = "tex",
-      description = "Texture",
-      branch = self.branches.texture,
-      gainbias = self.objects.texture,
-      range = self.objects.textureRange,
-      biasMap = unitMap,
-      biasUnits = app.unitNone,
-      initialBias = 0.5
-    },
-
-    drywet = GainBias {
-      button = "mix",
-      description = "Dry/Wet",
-      branch = self.branches.drywet,
-      gainbias = self.objects.drywet,
-      range = self.objects.drywetRange,
-      biasMap = unitMap,
-      biasUnits = app.unitNone,
-      initialBias = 0.5
-    },
-
-    stereo = GainBias {
-      button = "st",
-      description = "Stereo Spread",
-      branch = self.branches.stereo,
-      gainbias = self.objects.stereo,
-      range = self.objects.stereoRange,
-      biasMap = unitMap,
-      biasUnits = app.unitNone,
-      initialBias = 0
-    },
-
-    feedback = GainBias {
-      button = "fb",
-      description = "Feedback",
-      branch = self.branches.feedback,
-      gainbias = self.objects.feedback,
-      range = self.objects.feedbackRange,
-      biasMap = unitMap,
-      biasUnits = app.unitNone,
-      initialBias = 0
-    },
-
-    reverb = GainBias {
-      button = "rvb",
-      description = "Reverb",
-      branch = self.branches.reverb,
-      gainbias = self.objects.reverb,
-      range = self.objects.reverbRange,
-      biasMap = unitMap,
-      biasUnits = app.unitNone,
-      initialBias = 0
-    },
-
-    mode = OptionControl {
-      button = "mode",
-      description = "Playback Mode",
-      option = self.objects.op:getOption("Mode"),
-      choices = { "granular", "stretch", "looping", "spectral" }
-    },
-
-    quality = OptionControl {
-      button = "qual",
-      description = "Quality",
-      option = self.objects.op:getOption("Quality"),
-      choices = { "16bit stereo", "16bit mono", "8bit stereo", "8bit mono" }
-    }
-  }, {
-    expanded = { "trigger", "freeze", "position", "size", "pitch", "density", "texture" },
-    collapsed = {}
+  controls.trigger = Gate {
+    button = "trig",
+    description = "Trigger",
+    branch = branches.trigger,
+    comparator = objects.trigger
   }
-end
 
-function Clouds:onShowMenu(objects)
-  return {
-    mode = objects.mode,
-    quality = objects.quality
-  }, { "mode", "quality" }
+  controls.freeze = Gate {
+    button = "fz",
+    description = "Freeze",
+    branch = branches.freeze,
+    comparator = objects.freeze
+  }
+
+  controls.position = GainBias {
+    button = "pos",
+    description = "Position",
+    branch = branches.position,
+    gainbias = objects.position,
+    range = objects.positionRange,
+    biasMap = zeroToOne,
+    biasUnits = app.unitNone,
+    initialBias = 0.5
+  }
+
+  controls.size = GainBias {
+    button = "size",
+    description = "Grain Size",
+    branch = branches.size,
+    gainbias = objects.size,
+    range = objects.sizeRange,
+    biasMap = zeroToOne,
+    biasUnits = app.unitNone,
+    initialBias = 0.5
+  }
+
+  controls.pitch = GainBias {
+    button = "pitch",
+    description = "Pitch",
+    branch = branches.pitch,
+    gainbias = objects.pitch,
+    range = objects.pitchRange,
+    biasMap = pitchMap,
+    biasUnits = app.unitNone,
+    initialBias = 0
+  }
+
+  controls.density = GainBias {
+    button = "dens",
+    description = "Density",
+    branch = branches.density,
+    gainbias = objects.density,
+    range = objects.densityRange,
+    biasMap = zeroToOne,
+    biasUnits = app.unitNone,
+    initialBias = 0.5
+  }
+
+  controls.texture = GainBias {
+    button = "tex",
+    description = "Texture",
+    branch = branches.texture,
+    gainbias = objects.texture,
+    range = objects.textureRange,
+    biasMap = zeroToOne,
+    biasUnits = app.unitNone,
+    initialBias = 0.5
+  }
+
+  controls.drywet = GainBias {
+    button = "mix",
+    description = "Dry/Wet",
+    branch = branches.drywet,
+    gainbias = objects.drywet,
+    range = objects.drywetRange,
+    biasMap = zeroToOne,
+    biasUnits = app.unitNone,
+    initialBias = 0.5
+  }
+
+  controls.inGain = GainBias {
+    button = "gain",
+    description = "Input Gain",
+    branch = branches.inGain,
+    gainbias = objects.inGain,
+    range = objects.inGainRange,
+    biasMap = zeroToOne,
+    biasUnits = app.unitNone,
+    initialBias = 0.5
+  }
+
+  controls.stereo = GainBias {
+    button = "st",
+    description = "Stereo Spread",
+    branch = branches.stereo,
+    gainbias = objects.stereo,
+    range = objects.stereoRange,
+    biasMap = zeroToOne,
+    biasUnits = app.unitNone,
+    initialBias = 0
+  }
+
+  controls.feedback = GainBias {
+    button = "fb",
+    description = "Feedback",
+    branch = branches.feedback,
+    gainbias = objects.feedback,
+    range = objects.feedbackRange,
+    biasMap = zeroToOne,
+    biasUnits = app.unitNone,
+    initialBias = 0
+  }
+
+  controls.reverb = GainBias {
+    button = "rvb",
+    description = "Reverb",
+    branch = branches.reverb,
+    gainbias = objects.reverb,
+    range = objects.reverbRange,
+    biasMap = zeroToOne,
+    biasUnits = app.unitNone,
+    initialBias = 0
+  }
+
+  return controls, views
 end
 
 return Clouds

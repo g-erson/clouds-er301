@@ -29,7 +29,10 @@ MI_CC_OBJECTS = \
 	$(MI_OBJ_DIR)/phase_vocoder.o \
 	$(MI_OBJ_DIR)/stft.o \
 	$(MI_OBJ_DIR)/frame_transformation.o \
-	$(MI_OBJ_DIR)/resources.o
+	$(MI_OBJ_DIR)/resources.o \
+	$(MI_OBJ_DIR)/units.o \
+	$(MI_OBJ_DIR)/random.o \
+	$(MI_OBJ_DIR)/atan.o
 
 # Add MI objects to the link - we override the lib file rule
 $(LIB_FILE): $(MI_CC_OBJECTS)
@@ -66,6 +69,21 @@ $(MI_OBJ_DIR)/frame_transformation.o: $(MI_PATH)/clouds/dsp/pvoc/frame_transform
 	@$(CPP) $(CFLAGS) -std=gnu++11 -c $< -o $@
 
 $(MI_OBJ_DIR)/resources.o: $(MI_PATH)/clouds/resources.cc
+	@echo [C++ MI $<]
+	@mkdir -p $(@D)
+	@$(CPP) $(CFLAGS) -std=gnu++11 -c $< -o $@
+
+$(MI_OBJ_DIR)/units.o: $(MI_PATH)/stmlib/dsp/units.cc
+	@echo [C++ MI $<]
+	@mkdir -p $(@D)
+	@$(CPP) $(CFLAGS) -std=gnu++11 -c $< -o $@
+
+$(MI_OBJ_DIR)/random.o: $(MI_PATH)/stmlib/utils/random.cc
+	@echo [C++ MI $<]
+	@mkdir -p $(@D)
+	@$(CPP) $(CFLAGS) -std=gnu++11 -c $< -o $@
+
+$(MI_OBJ_DIR)/atan.o: $(MI_PATH)/stmlib/dsp/atan.cc
 	@echo [C++ MI $<]
 	@mkdir -p $(@D)
 	@$(CPP) $(CFLAGS) -std=gnu++11 -c $< -o $@
