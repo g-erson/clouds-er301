@@ -23,29 +23,30 @@ namespace clouds_er301 {
       virtual void process();
 
       // Audio I/O
-      od::Inlet  mLeftIn   { "Left In" };
-      od::Inlet  mRightIn  { "Right In" };
-      od::Outlet mLeftOut  { "Left Out" };
-      od::Outlet mRightOut { "Right Out" };
+      od::Inlet  mLeftIn   { "In1" };
+      od::Inlet  mRightIn  { "In2" };
+      od::Outlet mLeftOut  { "Out1" };
+      od::Outlet mRightOut { "Out2" };
 
       // Trigger/Gate inputs
       od::Inlet mTrigger { "Trigger" };
       od::Inlet mFreeze  { "Freeze" };
 
-      // Main parameters (0-1 range unless noted)
-      od::Parameter mPosition  { "Position", 0.5f };   // Buffer position
-      od::Parameter mSize      { "Size", 0.5f };       // Grain size
-      od::Parameter mPitch     { "Pitch", 0.0f };      // Pitch shift in semitones (-48 to +48)
-      od::Parameter mDensity   { "Density", 0.5f };    // Grain density
-      od::Parameter mTexture   { "Texture", 0.5f };    // Grain texture/quality
-      od::Parameter mDryWet    { "Dry/Wet", 0.5f };    // Dry/wet mix
-      od::Parameter mStereo    { "Stereo", 0.0f };     // Stereo spread
-      od::Parameter mFeedback  { "Feedback", 0.0f };   // Feedback amount
-      od::Parameter mReverb    { "Reverb", 0.0f };     // Reverb amount
+      // Parameter control inlets (0-1 range unless noted)
+      od::Inlet mPosition  { "Position" };   // Buffer position
+      od::Inlet mSize      { "Size" };       // Grain size
+      od::Inlet mPitch     { "Pitch" };      // Pitch shift in semitones (-48 to +48)
+      od::Inlet mDensity   { "Density" };    // Grain density
+      od::Inlet mTexture   { "Texture" };    // Grain texture/quality
+      od::Inlet mDryWet    { "Dry/Wet" };    // Dry/wet mix
+      od::Inlet mInGain    { "In Gain" };    // Input gain
+      od::Inlet mStereo    { "Stereo" };     // Stereo spread
+      od::Inlet mFeedback  { "Feedback" };   // Feedback amount
+      od::Inlet mReverb    { "Reverb" };     // Reverb amount
 
       // Mode and quality options
-      od::Option mPlaybackMode { "Mode", 0 };          // 0=Granular, 1=Stretch, 2=Looping, 3=Spectral
-      od::Option mQuality      { "Quality", 0 };       // 0=16bit stereo, 1=16bit mono, 2=8bit stereo, 3=8bit mono
+      od::Option mPlaybackMode { "Mode", 0 };     // 0=Granular, 1=Stretch, 2=Looping, 3=Spectral
+      od::Option mQuality      { "Quality", 0 };  // 0=16bit stereo, 1=16bit mono, 2=8bit stereo, 3=8bit mono
 
     private:
       void* mLargeBuffer = nullptr;
@@ -60,7 +61,10 @@ namespace clouds_er301 {
       void processBlock(float *leftIn, float *rightIn, 
                         float *leftOut, float *rightOut, 
                         float *trigger, float *freeze,
-                        int size);
+                        float *position, float *size, float *pitch,
+                        float *density, float *texture, float *drywet,
+                        float *inGain, float *stereo, float *feedback, float *reverb,
+                        int blockSize);
 #endif
   };
 

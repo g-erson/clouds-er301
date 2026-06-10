@@ -63,17 +63,17 @@ function Clouds:onLoadGraph(channelCount)
   connect(feedback, "Out", feedbackRange, "In")
   connect(reverb, "Out", reverbRange, "In")
 
-  -- Wire parameters to the Clouds object using tie()
-  tie(op, "Position", position, "Out")
-  tie(op, "Size", size, "Out")
-  tie(op, "Pitch", pitch, "Out")
-  tie(op, "Density", density, "Out")
-  tie(op, "Texture", texture, "Out")
-  tie(op, "Dry/Wet", drywet, "Out")
-  tie(op, "In Gain", inGain, "Out")
-  tie(op, "Stereo", stereo, "Out")
-  tie(op, "Feedback", feedback, "Out")
-  tie(op, "Reverb", reverb, "Out")
+  -- Wire parameters to the Clouds object
+  connect(position, "Out", op, "Position")
+  connect(size, "Out", op, "Size")
+  connect(pitch, "Out", op, "Pitch")
+  connect(density, "Out", op, "Density")
+  connect(texture, "Out", op, "Texture")
+  connect(drywet, "Out", op, "Dry/Wet")
+  connect(inGain, "Out", op, "In Gain")
+  connect(stereo, "Out", op, "Stereo")
+  connect(feedback, "Out", op, "Feedback")
+  connect(reverb, "Out", op, "Reverb")
 
   -- Wire audio
   if channelCount == 1 then
