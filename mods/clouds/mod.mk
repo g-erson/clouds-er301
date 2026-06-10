@@ -8,10 +8,14 @@ include scripts/mod-builder.mk
 # Add MI includes AFTER including mod-builder.mk since it overwrites INCLUDES
 CFLAGS += -I$(MI_PATH) -I$(MI_PATH)/stmlib
 
+# Define TEST for all architectures to avoid STM32 dependencies
+# The MI Clouds code uses STM32F4 (Cortex-M4) which is incompatible with:
+# - darwin/linux x86 (obviously)
+# - am335x (Cortex-A8, different ARM architecture)
+CFLAGS += -DTEST
+
 # Architecture-specific settings
 ifeq ($(ARCH),darwin)
-  # Define TEST to avoid STM32 dependencies on macOS (no ARM assembly)
-  CFLAGS += -DTEST
   # Override compiler for Apple Silicon M1+ compatibility (gcc-11 doesn't support apple-m1 arch)
   CC := gcc-14 -fdiagnostics-color -fmax-errors=5
   CPP := g++-14 -fdiagnostics-color -fmax-errors=5
@@ -19,13 +23,6 @@ ifeq ($(ARCH),darwin)
   # gcc-14 uses -shared, not Apple's -dynamic flags
   LFLAGS = -shared -undefined dynamic_lookup
 endif
-
-ifeq ($(ARCH),linux)
-  # Define TEST to avoid STM32 dependencies on Linux x86
-  CFLAGS += -DTEST
-endif
-
-# For am335x (real ER-301), we do NOT define TEST - use native ARM code
 
 # MI source files - we put objects in $(OUT_DIR)/mi/
 MI_OBJ_DIR = $(OUT_DIR)/mi

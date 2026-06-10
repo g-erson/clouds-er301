@@ -1,10 +1,13 @@
 # Build artifacts
 testing/
+release/
+debug/
 
-# Symlinks to er-301-custom-units (external dependency)
-common
-er-301
+# Symlinks to external dependencies (created by user, not tracked)
+# Root level
 scripts
+er-301
+mi
 
 # Object files
 *.o

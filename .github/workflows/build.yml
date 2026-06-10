@@ -22,9 +22,9 @@ jobs:
     - name: Checkout er-301-custom-units
       uses: actions/checkout@v4
       with:
-        repository: odevices/er-301
-        ref: main
-        path: er-301
+        repository: tomjfiset/er-301-custom-units
+        ref: master
+        path: er-301-custom-units
         submodules: recursive
 
     - name: Checkout mi-eurorack
@@ -35,22 +35,21 @@ jobs:
 
     - name: Setup symlinks
       run: |
-        cd clouds-er301/mods/clouds
-        ln -sf ../../../er-301/scripts scripts
-        ln -sf ../../../er-301/arch/am335x/hal hal
-        ln -sf ../../../er-301 er-301
-        ln -sf ../../../mi-eurorack mi
+        cd clouds-er301
+        ln -s ../er-301-custom-units/scripts scripts
+        ln -s ../er-301-custom-units/er-301 er-301
+        ln -s ../mi-eurorack mi
 
     - name: Build Clouds package
       run: |
-        cd clouds-er301/mods/clouds
-        make clouds ARCH=am335x PROFILE=release -j$(nproc)
+        cd clouds-er301
+        make all ARCH=am335x PROFILE=release MI_PATH=$GITHUB_WORKSPACE/mi-eurorack -j$(nproc)
 
     - name: Upload package artifact
       uses: actions/upload-artifact@v4
       with:
         name: clouds-am335x-pkg
-        path: clouds-er301/mods/clouds/release/am335x/*.pkg
+        path: clouds-er301/release/am335x/*.pkg
         if-no-files-found: error
         retention-days: 30
 
@@ -67,9 +66,9 @@ jobs:
     - name: Checkout er-301-custom-units
       uses: actions/checkout@v4
       with:
-        repository: odevices/er-301
-        ref: main
-        path: er-301
+        repository: tomjfiset/er-301-custom-units
+        ref: master
+        path: er-301-custom-units
         submodules: recursive
 
     - name: Checkout mi-eurorack
@@ -84,20 +83,20 @@ jobs:
 
     - name: Setup symlinks
       run: |
-        cd clouds-er301/mods/clouds
-        ln -sf ../../../er-301/scripts scripts
-        ln -sf ../../../er-301 er-301
-        ln -sf ../../../mi-eurorack mi
+        cd clouds-er301
+        ln -s ../er-301-custom-units/scripts scripts
+        ln -s ../er-301-custom-units/er-301 er-301
+        ln -s ../mi-eurorack mi
 
     - name: Build Clouds library
       run: |
-        cd clouds-er301/mods/clouds
-        make clouds ARCH=darwin PROFILE=release -j$(sysctl -n hw.ncpu)
+        cd clouds-er301
+        make all ARCH=darwin PROFILE=release MI_PATH=$GITHUB_WORKSPACE/mi-eurorack -j$(sysctl -n hw.ncpu)
 
     - name: Upload darwin artifact
       uses: actions/upload-artifact@v4
       with:
         name: clouds-darwin
-        path: clouds-er301/mods/clouds/release/darwin/*.so
+        path: clouds-er301/release/darwin/*.pkg
         if-no-files-found: error
         retention-days: 30

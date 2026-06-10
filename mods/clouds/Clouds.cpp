@@ -14,10 +14,8 @@
 #undef INTERPOLATION_LINEAR
 #endif
 
-// Include MI Clouds code - we define TEST to avoid STM32 hardware dependencies
-#define TEST
-
 // MI stmlib compatibility layer
+// TEST is defined in mod.mk to avoid STM32 hardware dependencies
 #include "stmlib/stmlib.h"
 #include "stmlib/dsp/filter.h"
 #include "stmlib/dsp/parameter_interpolator.h"
