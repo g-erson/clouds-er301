@@ -116,7 +116,7 @@ namespace clouds_er301 {
     // Update parameters from control inputs (use first sample of block)
     params->position = CLAMP(0.0f, 1.0f, position[0]);
     params->size = CLAMP(0.0f, 1.0f, size[0]);
-    params->pitch = pitch[0];  // Semitones, -48 to +48
+    params->pitch = pitch[0] / 100.0f;  // Convert cents to semitones
     params->density = CLAMP(0.0f, 1.0f, density[0]);
     params->texture = CLAMP(0.0f, 1.0f, texture[0]);
     params->dry_wet = CLAMP(0.0f, 1.0f, drywet[0]);

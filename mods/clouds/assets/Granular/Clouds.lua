@@ -5,6 +5,7 @@ local Unit = require "Unit"
 local Encoder = require "Encoder"
 local GainBias = require "Unit.ViewControl.GainBias"
 local Gate = require "Unit.ViewControl.Gate"
+local Pitch = require "Unit.ViewControl.Pitch"
 
 local Clouds = Class {}
 Clouds:include(Unit)
@@ -23,14 +24,14 @@ function Clouds:onLoadGraph(channelCount)
   local trigger = self:addObject("trigger", app.Comparator())
   trigger:setTriggerMode()
   local freeze = self:addObject("freeze", app.Comparator())
-  freeze:setGateMode()
+  freeze:setToggleMode()
 
   -- Parameter controls with GainBias and MinMax for range display
   local position = self:addObject("position", app.GainBias())
   local positionRange = self:addObject("positionRange", app.MinMax())
   local size = self:addObject("size", app.GainBias())
   local sizeRange = self:addObject("sizeRange", app.MinMax())
-  local pitch = self:addObject("pitch", app.GainBias())
+  local pitch = self:addObject("pitch", app.ConstantOffset())
   local pitchRange = self:addObject("pitchRange", app.MinMax())
   local density = self:addObject("density", app.GainBias())
   local densityRange = self:addObject("densityRange", app.MinMax())
@@ -115,7 +116,6 @@ function Clouds:onLoadViews(objects, branches)
 
   -- Encoder maps
   local zeroToOne = Encoder.getMap("[0,1]")
-  local pitchMap = Encoder.getMap("[-48,48]")
 
   controls.trigger = Gate {
     button = "trig",
@@ -125,7 +125,7 @@ function Clouds:onLoadViews(objects, branches)
   }
 
   controls.freeze = Gate {
-    button = "fz",
+    button = "freeze",
     description = "Freeze",
     branch = branches.freeze,
     comparator = objects.freeze
@@ -153,15 +153,12 @@ function Clouds:onLoadViews(objects, branches)
     initialBias = 0.5
   }
 
-  controls.pitch = GainBias {
+  controls.pitch = Pitch {
     button = "pitch",
     description = "Pitch",
     branch = branches.pitch,
-    gainbias = objects.pitch,
-    range = objects.pitchRange,
-    biasMap = pitchMap,
-    biasUnits = app.unitNone,
-    initialBias = 0
+    offset = objects.pitch,
+    range = objects.pitchRange
   }
 
   controls.density = GainBias {
